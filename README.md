@@ -21,30 +21,9 @@ Read more about it in our [documentation index](docs/index.md).
 
 ## Installation
 
-### Automated setup (recommended)
+### Docker setup (recommended)
 
-Run the setup script to install all system dependencies (Python, PostgreSQL, Memcached, RabbitMQ, libusb), then use `make` to complete the project setup:
-
-```bash
-./setup.sh   # installs system deps, creates the DB user and database
-make setup   # creates venv, installs pip deps, uses tracked env-driven settings, runs migrations
-```
-
-Both steps are idempotent — re-running them skips anything already in place.
-
-Once done:
-
-```bash
-make run     # start the development server
-make test    # run the test suite
-make worker  # start a Celery worker (for async image processing)
-```
-
----
-
-### Docker
-
-Use Docker if you want a local stack without installing Python, PostgreSQL, Memcached, RabbitMQ, or libusb on the host.
+Docker is the recommended way to run the app for local development and normal local use. It gives you PostgreSQL and the optional async worker stack without installing Python, PostgreSQL, RabbitMQ, or other runtime dependencies on the host.
 
 #### Prerequisites
 
@@ -76,16 +55,16 @@ docker compose exec web python manage.py process_images_sync /data/images
 
 #### Start the stack
 
-The current Compose design expects the env file on every invocation:
-
-```bash
-docker compose up --build
-```
-
-This starts the web app and PostgreSQL. To include RabbitMQ and the Celery worker for async image processing, add the async profile:
+For the full local stack, including RabbitMQ and the Celery worker for async image processing:
 
 ```bash
 docker compose --profile async up --build
+```
+
+If you only want the web app and PostgreSQL:
+
+```bash
+docker compose up --build
 ```
 
 The Makefile wraps the same commands as `make docker-up`, `make docker-up-async`, `make docker-down`, `make docker-logs`, and `make docker-shell`.
@@ -95,6 +74,31 @@ The Makefile wraps the same commands as `make docker-up`, `make docker-up-async`
 - If Docker Desktop cannot see your image folder, add that directory to Docker Desktop file sharing and retry.
 - If Compose fails to parse `.env`, check the path syntax. Use an absolute path with the separators Docker expects for your platform.
 - Camera USB features are not supported inside Docker. Use the host-based setup if you need to connect a Fujifilm camera over USB and push recipes directly to the device.
+
+---
+
+### Host setup
+
+Use the host-based setup if you need direct USB camera access, or if you explicitly do not want to run the app in Docker.
+
+#### Automated setup
+
+Run the setup script to install all system dependencies (Python, PostgreSQL, Memcached, RabbitMQ, libusb), then use `make` to complete the project setup:
+
+```bash
+./setup.sh   # installs system deps, creates the DB user and database
+make setup   # creates venv, installs pip deps, uses tracked env-driven settings, runs migrations
+```
+
+Both steps are idempotent — re-running them skips anything already in place.
+
+Once done:
+
+```bash
+make run     # start the development server
+make test    # run the test suite
+make worker  # start a Celery worker (for async image processing)
+```
 
 ---
 
@@ -210,13 +214,25 @@ Python 3.11+ is required.
 
 ## Processing your image catalog
 
-Before using the web interface, you need to process your images so their EXIF data and recipe information are stored in the database. Point `IMAGE_DIR` at the root of your image folder.
+Before using the web interface, you need to process your images so their EXIF data and recipe information are stored in the database. If you are using Docker, keep the path inside the container and point commands at `IMAGE_LIBRARY_ROOT`, which defaults to `/data/images`.
 
-### Async (recommended — requires Celery + RabbitMQ)
+### Async (recommended)
 
 This is faster as images are processed in parallel by Celery workers.
 
-Start a Celery worker in a separate terminal:
+With Docker, start the async stack:
+
+```bash
+docker compose --profile async up --build
+```
+
+Then enqueue all images for processing:
+
+```bash
+docker compose exec web python manage.py process_images /data/images
+```
+
+If you are using the host-based setup, start a Celery worker in a separate terminal:
 
 ```bash
 celery -A src.config worker --loglevel=info --concurrency=8
@@ -224,7 +240,7 @@ celery -A src.config worker --loglevel=info --concurrency=8
 
 You can change the number of simultaneous adjusting the concurrency.
 
-Then enqueue all images for processing:
+Then enqueue all images for processing on the host:
 
 ```bash
 python manage.py process_images /path/to/your/images
@@ -233,6 +249,14 @@ python manage.py process_images /path/to/your/images
 ### Sync (slower, no Celery required)
 
 Images are processed one by one in the foreground:
+
+Docker:
+
+```bash
+docker compose exec web python manage.py process_images_sync /data/images
+```
+
+Host:
 
 ```bash
 python manage.py process_images_sync /path/to/your/images
@@ -244,7 +268,19 @@ Use this if you don't want to set up RabbitMQ and Celery.
 
 ## How to run
 
-Start the Django development server:
+Docker:
+
+```bash
+docker compose --profile async up --build
+```
+
+Or, if you do not want the async services:
+
+```bash
+docker compose up --build
+```
+
+Host:
 
 ```bash
 python manage.py runserver
