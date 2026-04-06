@@ -3,7 +3,7 @@ PYTHON  := $(VENV)/bin/python
 PIP     := $(VENV)/bin/pip
 PYTEST  := $(VENV)/bin/pytest
 CELERY  := $(VENV)/bin/celery
-DOCKER_COMPOSE := docker compose --env-file .env.docker
+DOCKER_COMPOSE := docker compose
 
 .PHONY: setup run worker test help docker-up docker-up-async docker-down docker-logs docker-shell
 

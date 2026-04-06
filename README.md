@@ -56,10 +56,10 @@ Use Docker if you want a local stack without installing Python, PostgreSQL, Memc
 Copy the Docker env file and set the host path to your image library:
 
 ```bash
-cp .env.docker.example .env.docker
+cp .env.example .env
 ```
 
-Edit `.env.docker` and set `IMAGE_LIBRARY_SOURCE` to an absolute path on your machine. Compose mounts that host directory into the container at `IMAGE_LIBRARY_ROOT`, which defaults to `/data/images`.
+Edit `.env` and set `IMAGE_LIBRARY_SOURCE` to an absolute path on your machine. Compose mounts that host directory into the container at `IMAGE_LIBRARY_ROOT`, which defaults to `/data/images`.
 
 Examples:
 
@@ -70,8 +70,8 @@ Examples:
 Keep the container-side path internal when you run commands inside Docker. For example:
 
 ```bash
-docker compose --env-file .env.docker exec web python manage.py process_images /data/images
-docker compose --env-file .env.docker exec web python manage.py process_images_sync /data/images
+docker compose exec web python manage.py process_images /data/images
+docker compose exec web python manage.py process_images_sync /data/images
 ```
 
 #### Start the stack
@@ -79,13 +79,13 @@ docker compose --env-file .env.docker exec web python manage.py process_images_s
 The current Compose design expects the env file on every invocation:
 
 ```bash
-docker compose --env-file .env.docker up --build
+docker compose up --build
 ```
 
 This starts the web app and PostgreSQL. To include RabbitMQ and the Celery worker for async image processing, add the async profile:
 
 ```bash
-docker compose --env-file .env.docker --profile async up --build
+docker compose --profile async up --build
 ```
 
 The Makefile wraps the same commands as `make docker-up`, `make docker-up-async`, `make docker-down`, `make docker-logs`, and `make docker-shell`.
@@ -93,7 +93,7 @@ The Makefile wraps the same commands as `make docker-up`, `make docker-up-async`
 #### Troubleshooting
 
 - If Docker Desktop cannot see your image folder, add that directory to Docker Desktop file sharing and retry.
-- If Compose fails to parse `.env.docker`, check the path syntax. Use an absolute path with the separators Docker expects for your platform.
+- If Compose fails to parse `.env`, check the path syntax. Use an absolute path with the separators Docker expects for your platform.
 - Camera USB features are not supported inside Docker. Use the host-based setup if you need to connect a Fujifilm camera over USB and push recipes directly to the device.
 
 ---

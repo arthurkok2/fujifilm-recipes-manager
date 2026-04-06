@@ -3,9 +3,9 @@ name: fujifilm-recipes-manager
 # This stack fills the current gap: there was no Compose file, no db service,
 # and no cross-platform host mount configuration for the image library.
 # Run it with:
-#   docker compose --env-file .env.docker up --build
-# Compose interpolation reads `.env.docker`; service-level env vars below set
-# the container environment for Django, Postgres, RabbitMQ, and Celery.
+#   docker compose up --build
+# Compose interpolation reads `.env`; service-level env vars below set the
+# container environment for Django, Postgres, RabbitMQ, and Celery.
 
 x-common-env: &common-env
   DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-to-a-long-random-secret-key}

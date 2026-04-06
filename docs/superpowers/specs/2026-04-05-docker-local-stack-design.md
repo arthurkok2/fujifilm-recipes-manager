@@ -60,7 +60,7 @@ The implementation should introduce:
 - one primary `compose.yaml`
 - either Compose profiles in the primary file or a small override file for async services
 - one lightweight entrypoint script for startup coordination
-- one Docker-focused environment file such as `.env.docker`
+- one Compose environment file such as `.env`
 - documentation covering common commands and mount expectations
 - documentation covering Windows, macOS, and Linux path examples where the user must supply host-specific values
 
@@ -248,7 +248,7 @@ This should cover:
 Container configuration should come from:
 
 - Compose `environment:` blocks for the most important runtime values
-- optionally a dedicated env file such as `.env.docker` for easier local customization
+- a standard Compose env file named `.env` for easier local customization
 
 The implementation should avoid forcing users to manually rewrite `settings.py` for Docker use.
 
