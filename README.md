@@ -27,7 +27,7 @@ Run the setup script to install all system dependencies (Python, PostgreSQL, Mem
 
 ```bash
 ./setup.sh   # installs system deps, creates the DB user and database
-make setup   # creates venv, installs pip deps, copies settings, runs migrations
+make setup   # creates venv, installs pip deps, uses tracked env-driven settings, runs migrations
 ```
 
 Both steps are idempotent — re-running them skips anything already in place.
