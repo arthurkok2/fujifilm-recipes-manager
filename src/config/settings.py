@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import structlog
+from kombu import Queue
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -92,7 +93,8 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 PROCESS_IMAGE_QUEUE = env("PROCESS_IMAGE_QUEUE", "celery")
-CELERY_TASK_QUEUES = [PROCESS_IMAGE_QUEUE]
+CELERY_TASK_DEFAULT_QUEUE = PROCESS_IMAGE_QUEUE
+CELERY_TASK_QUEUES = (Queue(PROCESS_IMAGE_QUEUE),)
 
 LOGGING = {
     "version": 1,
