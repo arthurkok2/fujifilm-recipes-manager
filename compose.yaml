@@ -1,0 +1,88 @@
+name: fujifilm-recipes-manager
+
+# This stack fills the current gap: there was no Compose file, no db service,
+# and no cross-platform host mount configuration for the image library.
+
+x-app-common: &app-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: dev
+  env_file:
+    - .env.docker
+  working_dir: /app
+  volumes:
+    - .:/app
+    - ${IMAGE_LIBRARY_SOURCE:-/absolute/path/to/your/fujifilm/images}:${IMAGE_LIBRARY_ROOT:-/data/images}:ro
+    - thumbnail-cache:${THUMBNAIL_CACHE_DIR:-/data/thumbnail-cache}
+    - logs:${LOG_DIR:-/data/logs}
+
+services:
+  db:
+    image: postgres:16
+    env_file:
+      - .env.docker
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fujifilm_recipes}
+      POSTGRES_USER: ${POSTGRES_USER:-fujifilm_recipes}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fujifilm_recipes}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  web:
+    <<: *app-common
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      RUN_MIGRATIONS: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    profiles: ["async"]
+    env_file:
+      - .env.docker
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  worker:
+    <<: *app-common
+    profiles: ["async"]
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      RUN_MIGRATIONS: "0"
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command:
+      [
+        "celery",
+        "-A",
+        "src.config",
+        "worker",
+        "--loglevel=info",
+        "--concurrency=8",
+      ]
+
+volumes:
+  postgres-data:
+  thumbnail-cache:
+  logs:
