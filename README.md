@@ -70,8 +70,8 @@ Examples:
 Keep the container-side path internal when you run commands inside Docker. For example:
 
 ```bash
-docker compose --env-file .env.docker exec web python manage.py process_images --image-dir /data/images
-docker compose --env-file .env.docker exec web python manage.py process_images_sync --image-dir /data/images
+docker compose --env-file .env.docker exec web python manage.py process_images /data/images
+docker compose --env-file .env.docker exec web python manage.py process_images_sync /data/images
 ```
 
 #### Start the stack
