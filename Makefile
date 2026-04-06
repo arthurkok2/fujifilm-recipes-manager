@@ -4,27 +4,11 @@ PIP     := $(VENV)/bin/pip
 PYTEST  := $(VENV)/bin/pytest
 CELERY  := $(VENV)/bin/celery
 
-SETTINGS_SRC    := src/config/settings.py.sample
-SETTINGS_TARGET := src/config/settings.py
-
 .PHONY: setup run worker test help
 
 ## setup   — create venv, install deps, configure settings, run migrations
 setup: $(VENV)/.deps-installed
-	@if [ ! -f $(SETTINGS_TARGET) ]; then \
-		echo "[setup] Copying settings from sample..."; \
-		cp $(SETTINGS_SRC) $(SETTINGS_TARGET); \
-		python3 -c "\
-import sys; f='$(SETTINGS_TARGET)'; \
-c=open(f).read(); \
-c=c.replace('your_db_name','fujifilm_recipes') \
-  .replace('your_db_user','fujifilm_recipes') \
-  .replace('your_db_password','fujifilm_recipes'); \
-open(f,'w').write(c)"; \
-		echo "[setup] Settings written to $(SETTINGS_TARGET)"; \
-	else \
-		echo "[skip]  $(SETTINGS_TARGET) already exists"; \
-	fi
+	@echo "[setup] Using tracked env-driven Django settings in src/config/settings.py"
 	@echo "[setup] Running database migrations..."
 	@$(PYTHON) manage.py migrate
 	@echo ""

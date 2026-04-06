@@ -139,13 +139,11 @@ Python 3.11+ is required.
    pip install -r requirements.txt
    ```
 
-4. **Configure the database**: First, copy the sample settings file:
+4. **Configure runtime settings**:
 
-   ```bash
-   cp src/config/settings.py.sample src/config/settings.py
-   ```
+   `src/config/settings.py` is now tracked in the repo and reads its runtime values from environment variables. In most cases you do not need to copy or edit a settings file at all.
 
-   Then edit `src/config/settings.py` to set your PostgreSQL credentials if they differ from the defaults (`fujifilm_recipes` / `fujifilm_recipes`).
+   If you want to override defaults, set environment variables such as `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, and `POSTGRES_PORT` before running commands.
 
 5. **Apply migrations:**
    ```bash
