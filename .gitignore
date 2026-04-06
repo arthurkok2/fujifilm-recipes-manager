@@ -45,6 +45,7 @@ Thumbs.db
 .claude/
 *.swp
 *.swo
+.worktrees/
 
 # Local data directories
 scripts/
