@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-POSTGRES_HOST="${POSTGRES_HOST:-127.0.0.1}"
+POSTGRES_HOST="${POSTGRES_HOST:-db}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 
 until nc -z "$POSTGRES_HOST" "$POSTGRES_PORT"; do
@@ -9,7 +9,7 @@ until nc -z "$POSTGRES_HOST" "$POSTGRES_PORT"; do
   sleep 1
 done
 
-if [ "${RUN_MIGRATIONS:-0}" = "1" ]; then
+if [ "${RUN_MIGRATIONS:-1}" = "1" ]; then
   python manage.py migrate --noinput
 fi
 
