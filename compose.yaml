@@ -2,26 +2,43 @@ name: fujifilm-recipes-manager
 
 # This stack fills the current gap: there was no Compose file, no db service,
 # and no cross-platform host mount configuration for the image library.
+# Run it with:
+#   docker compose --env-file .env.docker up --build
+# Compose interpolation reads `.env.docker`; service-level env vars below set
+# the container environment for Django, Postgres, RabbitMQ, and Celery.
+
+x-common-env: &common-env
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-to-a-long-random-secret-key}
+  DJANGO_DEBUG: ${DJANGO_DEBUG:-1}
+  DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,[::1]}
+  POSTGRES_DB: ${POSTGRES_DB:-fujifilm_recipes}
+  POSTGRES_USER: ${POSTGRES_USER:-fujifilm_recipes}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fujifilm_recipes}
+  IMAGE_LIBRARY_ROOT: ${IMAGE_LIBRARY_ROOT:-/data/images}
+  THUMBNAIL_CACHE_DIR: ${THUMBNAIL_CACHE_DIR:-/data/thumbnail-cache}
+  LOG_DIR: ${LOG_DIR:-/data/logs}
+  CELERY_BROKER_URL: ${CELERY_BROKER_URL:-amqp://guest:guest@localhost:5672//}
+  CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-rpc://}
+  PROCESS_IMAGE_QUEUE: ${PROCESS_IMAGE_QUEUE:-celery}
 
 x-app-common: &app-common
   build:
     context: .
     dockerfile: Dockerfile
     target: dev
-  env_file:
-    - .env.docker
   working_dir: /app
   volumes:
     - .:/app
-    - ${IMAGE_LIBRARY_SOURCE:-/absolute/path/to/your/fujifilm/images}:${IMAGE_LIBRARY_ROOT:-/data/images}:ro
+    - type: bind
+      source: ${IMAGE_LIBRARY_SOURCE:-/absolute/path/to/your/fujifilm/images}
+      target: ${IMAGE_LIBRARY_ROOT:-/data/images}
+      read_only: true
     - thumbnail-cache:${THUMBNAIL_CACHE_DIR:-/data/thumbnail-cache}
     - logs:${LOG_DIR:-/data/logs}
 
 services:
   db:
     image: postgres:16
-    env_file:
-      - .env.docker
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-fujifilm_recipes}
       POSTGRES_USER: ${POSTGRES_USER:-fujifilm_recipes}
@@ -38,8 +55,9 @@ services:
   web:
     <<: *app-common
     environment:
+      <<: *common-env
       POSTGRES_HOST: db
-      POSTGRES_PORT: "5432"
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       RUN_MIGRATIONS: "1"
     depends_on:
       db:
@@ -51,8 +69,10 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     profiles: ["async"]
-    env_file:
-      - .env.docker
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-fujifilm_recipes}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-fujifilm_recipes}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_DEFAULT_VHOST:-/}
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
@@ -64,8 +84,9 @@ services:
     <<: *app-common
     profiles: ["async"]
     environment:
+      <<: *common-env
       POSTGRES_HOST: db
-      POSTGRES_PORT: "5432"
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       RUN_MIGRATIONS: "0"
     depends_on:
       db:
