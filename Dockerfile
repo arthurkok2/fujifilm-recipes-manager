@@ -11,7 +11,6 @@ RUN apt-get update \
         bash \
         libimage-exiftool-perl \
         libusb-1.0-0 \
-        netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
