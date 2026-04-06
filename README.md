@@ -227,7 +227,7 @@ You can change the number of simultaneous adjusting the concurrency.
 Then enqueue all images for processing:
 
 ```bash
-python manage.py process_images --image-dir /path/to/your/images
+python manage.py process_images /path/to/your/images
 ```
 
 ### Sync (slower, no Celery required)
@@ -235,7 +235,7 @@ python manage.py process_images --image-dir /path/to/your/images
 Images are processed one by one in the foreground:
 
 ```bash
-python manage.py process_images_sync --image-dir /path/to/your/images
+python manage.py process_images_sync /path/to/your/images
 ```
 
 Use this if you don't want to set up RabbitMQ and Celery.
