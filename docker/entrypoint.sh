@@ -28,7 +28,8 @@ try:
         password=os.environ.get("POSTGRES_PASSWORD", "fujifilm_recipes"),
         connect_timeout=1,
     )
-except Exception:
+except Exception as exc:
+    print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
     raise SystemExit(1)
 
 conn.close()
