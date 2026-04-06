@@ -21,7 +21,7 @@ The stack is explicitly optimized for one-machine use with a host bind mount for
 - Keep the default stack lean by excluding Celery and RabbitMQ unless requested.
 - Support the real host image library through bind mounts.
 - Reuse the same image for Django web, Celery worker, and one-off management commands.
-- Keep the setup portable across typical Linux and macOS Docker Desktop workflows.
+- Keep the setup portable across Windows, macOS, and Linux Docker workflows.
 
 ## Non-Goals
 
@@ -45,6 +45,13 @@ The current repository already implies the runtime shape:
 
 Memcached is mentioned in setup documentation but is not configured in Django settings and is not used by current application code. It is excluded from this design.
 
+Cross-platform support introduces additional constraints:
+
+- host paths must not be hard-coded in the Compose file
+- the default workflow must work with Docker Desktop on Windows and macOS as well as Docker Engine on Linux
+- image-library mounting must be documented in a way that is compatible with Windows drive-letter paths and Unix-style paths
+- USB camera passthrough remains out of scope partly because it is especially inconsistent across host operating systems
+
 ## Proposed Artifacts
 
 The implementation should introduce:
@@ -55,6 +62,7 @@ The implementation should introduce:
 - one lightweight entrypoint script for startup coordination
 - one Docker-focused environment file such as `.env.docker`
 - documentation covering common commands and mount expectations
+- documentation covering Windows, macOS, and Linux path examples where the user must supply host-specific values
 
 ## Architecture
 
@@ -115,6 +123,8 @@ The `Dockerfile` should use a multi-stage layout:
 
 This keeps dependency installation centralized while allowing a development-friendly target and a smaller stable target from the same file.
 
+The Dockerfile itself should remain host-agnostic. Cross-platform handling belongs in Compose configuration and documentation, not in OS-specific image variants.
+
 ### Base Image
 
 Use Python 3.11 slim as the base, matching the repository requirement.
@@ -162,6 +172,8 @@ The startup behavior should favor practicality for one-machine use. Running migr
 
 The entrypoint must stay minimal. It should not try to manage RabbitMQ, perform application setup unrelated to startup, or hide failures behind broad retry loops.
 
+The entrypoint must also avoid shell assumptions that are brittle across host platforms. Container startup should depend only on the Linux userspace inside the image, not on host-specific shell behavior.
+
 ## Compose Design
 
 ### Database Service
@@ -188,6 +200,12 @@ The `web` service should:
 - run the Django development server bound to `0.0.0.0:8000`
 
 The host image-library mount should be explicit and user-configurable. A stable internal path such as `/data/images` is preferred so container-side settings and documentation do not depend on the user’s host directory layout.
+
+The Compose definition should avoid embedding developer-specific absolute host paths. The host path should be provided through an environment variable or equivalent Compose substitution so the same file works on:
+
+- Windows paths such as `C:\Users\arthur\Pictures\Fujifilm`
+- macOS paths such as `/Users/arthur/Pictures/Fujifilm`
+- Linux paths such as `/home/arthur/Pictures/Fujifilm`
 
 ### Worker Service
 
@@ -234,6 +252,8 @@ Container configuration should come from:
 
 The implementation should avoid forcing users to manually rewrite `settings.py` for Docker use.
 
+For cross-platform compatibility, the implementation should prefer environment variables for host-specific mount inputs, for example an image-library source path provided by the user in an env file that Compose reads.
+
 ### Filesystem Paths
 
 The design should make the container filesystem model explicit:
@@ -244,6 +264,8 @@ The design should make the container filesystem model explicit:
 - logs: preferably a named volume or repo-local bind mount, depending on how visible the logs should be during development
 
 The internal paths should be stable and documented so management commands and troubleshooting instructions are predictable.
+
+Cross-platform rule: internal container paths should always be Linux-style fixed paths, while external host paths must remain configurable. This avoids leaking Windows path syntax into application settings or management command examples.
 
 ## Image Library Handling
 
@@ -256,6 +278,8 @@ The correct default is a host bind mount. This allows:
 - easy invocation of sync or async image-processing commands against real data
 
 The application should refer to the mounted container path, not the host path, when commands run inside containers.
+
+Documentation must show how the host path is supplied on each supported platform, but once mounted, all in-container commands should use the same internal path regardless of host OS.
 
 ## Data Flow
 
@@ -283,6 +307,8 @@ The Docker setup should make the following failure modes straightforward to diag
 - database unavailable
 - bad database credentials
 - missing image-library mount
+- invalid host path syntax in Compose configuration
+- Docker Desktop file-sharing or filesystem permission issues on Windows or macOS
 - missing `exiftool`
 - worker started without RabbitMQ
 
@@ -321,6 +347,13 @@ The Docker work should be verified at three levels.
 - host image-library bind mount is visible in the container
 - thumbnail cache is written to the expected location
 
+### Cross-Platform Verification
+
+- the documented host-path configuration works on Windows
+- the documented host-path configuration works on macOS
+- the documented host-path configuration works on Linux
+- all container-side commands use the same internal image-library path on every host OS
+
 ## Explicit Decisions
 
 - Use one multi-stage `Dockerfile`, not separate Dockerfiles.
@@ -328,9 +361,11 @@ The Docker work should be verified at three levels.
 - Default stack is `web + db`.
 - Async stack is optional.
 - Use a host bind mount for the real image library.
+- Keep host-specific path syntax outside the application settings and inside user-supplied Compose/env configuration.
 - Exclude Memcached from the first Docker stack.
 - Keep USB camera access outside Docker for the first version.
 - Prefer Compose profiles for async services, but allow an override file if implementation ergonomics are clearly better.
+- Treat Windows, macOS, and Linux as first-class supported local host platforms.
 
 ## Open Questions Resolved By This Spec
 
